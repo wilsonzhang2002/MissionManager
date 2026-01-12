@@ -23,3 +23,26 @@ Thank you for contributing. This document contains the repository standards and 
 
 ## Provisioning files
 - Keep README, deployment, and environment setup scripts up to date.
+
+## Graph model & UI behavior (new)
+This project uses React Flow (`reactflow`) for visualizing and editing directed acyclic graphs (DAGs) in the frontend. The following expectations and standards apply when modifying or implementing graph-related features:
+
+- Persisted model
+  - The canonical graph model is expressed as nodes and edges arrays. Each node should include stable `id`, `label`, optional `metadata`, and `position` when persisted. Each edge should include `source` and `target` (node ids) and may include additional renderer properties such as `animated` or `markerEnd`.
+  - Components that allow editing the graph (adding/removing nodes or edges, repositioning nodes) should maintain local React Flow state using `useNodesState` and `useEdgesState` and expose an explicit `onChange` callback or call a provided save API to persist the updated model to the backend.
+
+- UI behavior
+  - Nodes must be draggable so users can position them. Node positions should be saved to the persisted model so layout is preserved across reloads.
+  - Edges must visually indicate direction using arrow markers (closed arrows preferred). Use React Flow's marker/arrow configuration for this (`markerEnd` or equivalent) so arrows render consistently.
+  - For DAGs, avoid rendering bidirectional arrows between the same two nodes unless explicitly desired. Edge creation UI should include validation hooks where needed.
+
+- Implementation notes
+  - Use React Flow helpers such as `addEdge`, `useNodesState`, `useEdgesState`, and `onConnect` for consistent behavior.
+  - Prefer stable id generation for nodes/edges (UUIDs or backend-assigned ids) and deterministic position storage in the model.
+  - Add unit tests that validate serialization and deserialization of node positions and edge arrow metadata when adding save/load behaviors.
+
+- Workflow
+  - Before adding large refactors to graph persistence or rendering, open an issue describing the design and data contract.
+  - Implement changes on a feature branch and include small, focused PRs when possible.
+
+Please follow these rules to keep graph UI behavior consistent and persistent across sessions.
