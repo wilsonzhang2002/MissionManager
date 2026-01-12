@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import App from "./App";
 
+console.log("DEBUG: main.tsx running — attempting to mount React app");
+
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
