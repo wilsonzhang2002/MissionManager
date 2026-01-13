@@ -6,11 +6,9 @@ import ReactFlow, {
   Node,
   Edge,
   addEdge,
-  applyNodeChanges,
-  applyEdgeChanges,
   useNodesState,
   useEdgesState,
-  ArrowHeadType,
+  MarkerType,
   Connection
 } from "reactflow";
 import "reactflow/dist/style.css";
@@ -37,7 +35,7 @@ export default function GraphView(props: {
     source: e.source,
     target: e.target,
     animated: true,
-    arrowHeadType: ArrowHeadType.ArrowClosed
+    markerEnd: { type: MarkerType.ArrowClosed }
   }));
 
   // React Flow-managed state (keeps positions and edits)
@@ -62,7 +60,7 @@ export default function GraphView(props: {
         source: e.source,
         target: e.target,
         animated: true,
-        arrowHeadType: ArrowHeadType.ArrowClosed
+        markerEnd: { type: MarkerType.ArrowClosed }
       }))
     );
   }, [props.nodes, props.edges, setNodes, setEdges]);
@@ -74,7 +72,7 @@ export default function GraphView(props: {
           {
             ...connection,
             animated: true,
-            arrowHeadType: ArrowHeadType.ArrowClosed
+            markerEnd: { type: MarkerType.ArrowClosed }
           },
           eds
         )
