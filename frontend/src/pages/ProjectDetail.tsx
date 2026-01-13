@@ -43,7 +43,6 @@ export default function ProjectDetail() {
                     edges: [
                         { source: "A", target: "B1" },
                         { source: "A", target: "B2" },
-                        { source: "B1", target: "B2" },
                         { source: "B1", target: "C" },
                         { source: "B2", target: "C" }
                     ]
