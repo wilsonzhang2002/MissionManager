@@ -36,12 +36,16 @@ export default function ProjectDetail() {
                     tenantId: "tenant-a",
                     nodes: [
                         { id: "A", label: "System A" },
-                        { id: "B", label: "System B" },
+                        { id: "B1", label: "System B1" },
+                        { id: "B2", label: "System B2" },
                         { id: "C", label: "System C" }
                     ],
                     edges: [
-                        { source: "A", target: "B" },
-                        { source: "B", target: "C" }
+                        { source: "A", target: "B1" },
+                        { source: "A", target: "B2" },
+                        { source: "B1", target: "B2" },
+                        { source: "B1", target: "C" },
+                        { source: "B2", target: "C" }
                     ]
                 });
             })

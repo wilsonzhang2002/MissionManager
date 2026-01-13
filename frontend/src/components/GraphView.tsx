@@ -1,33 +1,52 @@
 import React, { useCallback, useEffect } from "react";
-import ReactFlow, {
-  MiniMap,
-  Controls,
-  Background,
-  Node,
-  Edge,
-  addEdge,
-  useNodesState,
-  useEdgesState,
-  MarkerType,
-  Connection
-} from "reactflow";
+import ReactFlow,
+{ MiniMap, Controls, Background, Node, Edge, addEdge, useNodesState, useEdgesState, MarkerType, Connection }
+from "reactflow";
 import "reactflow/dist/style.css";
+import axios from "axios";
 
 type NodeDto = { id: string; label: string; metadata?: Record<string, any> };
 type EdgeDto = { source: string; target: string };
+type NodeState = "green" | "yellow" | "orange" | "red";
 
 export default function GraphView(props: {
   nodes: NodeDto[];
   edges: EdgeDto[];
   onChange?: (nodes: NodeDto[], edges: EdgeDto[]) => void;
+  /**
+   * Optional override to fetch node states. Should return a map of nodeId->state.
+   * If not provided, component will POST to `/api/nodes/statuses` with body `{ ids: string[] }`
+   * and expect a response `{ [id: string]: "green" | "yellow" | "orange" | "red" }`.
+   */
+  fetchStates?: (ids: string[]) => Promise<Record<string, NodeState | undefined>>;
 }) {
+  const stateColor = (s?: NodeState) => {
+    switch (s) {
+      case "yellow":
+        return "#FFC107";
+      case "orange":
+        return "#FF9800";
+      case "red":
+        return "#F44336";
+      case "green":
+      default:
+        return "#4CAF50";
+    }
+  };
+
   // Map incoming DTOs to React Flow nodes/edges, preserving persisted positions if present
   const initialRfNodes: Node[] = props.nodes.map((n, i) => ({
     id: n.id,
     data: { label: n.label },
     position:
       (n.metadata && (n.metadata.position as { x: number; y: number })) ??
-      { x: i * 200, y: (i % 3) * 120 }
+      { x: i * 200, y: (i % 3) * 120 },
+    style: {
+      background: stateColor((n.metadata && (n.metadata.state as NodeState)) ?? "green"),
+      color: "white",
+      padding: 8,
+      borderRadius: 4
+    }
   }));
 
   const initialRfEdges: Edge[] = props.edges.map((e, i) => ({
@@ -42,6 +61,49 @@ export default function GraphView(props: {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialRfNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialRfEdges);
 
+  // Fetch node states from backend (or use provided fetchStates) and apply styles
+  useEffect(() => {
+    let mounted = true;
+    const ids = props.nodes.map((n) => n.id);
+
+    const defaultFetcher = async (idsArg: string[]) => {
+      try {
+        const resp = await axios.post<Record<string, NodeState>>("/api/nodes/statuses", {
+          ids: idsArg
+        });
+        return resp.data;
+      } catch {
+        return {};
+      }
+    };
+
+    (async () => {
+      const fetcher = props.fetchStates ?? defaultFetcher;
+      try {
+        const states = await fetcher(ids);
+
+        if (!mounted) return;
+
+        setNodes((nds) =>
+          nds.map((node) => {
+            const s = states[node.id] ?? "green";
+            return {
+              ...node,
+              data: { ...(node.data as any), state: s },
+              style: { ...(node.style ?? {}), background: stateColor(s), color: "white" }
+            };
+          })
+        );
+      } catch {
+        // keep default green if fetch fails
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [props.nodes, props.fetchStates, setNodes]);
+
   // Keep local state in sync if parent props change (e.g., loading a different project)
   useEffect(() => {
     setNodes(
@@ -50,7 +112,13 @@ export default function GraphView(props: {
         data: { label: n.label },
         position:
           (n.metadata && (n.metadata.position as { x: number; y: number })) ??
-          { x: i * 200, y: (i % 3) * 120 }
+          { x: i * 200, y: (i % 3) * 120 },
+        style: {
+          background: stateColor((n.metadata && (n.metadata.state as NodeState)) ?? "green"),
+          color: "white",
+          padding: 8,
+          borderRadius: 4
+        }
       }))
     );
 
@@ -92,8 +160,9 @@ export default function GraphView(props: {
       ...nds,
       {
         id,
-        data: { label: "New Node" },
-        position: { x: 100 + nds.length * 30, y: 100 + (nds.length % 5) * 30 }
+        data: { label: "New Node", state: "green" as NodeState },
+        position: { x: 100 + nds.length * 30, y: 100 + (nds.length % 5) * 30 },
+        style: { background: stateColor("green"), color: "white", padding: 8, borderRadius: 4 }
       }
     ]);
   }, [setNodes]);
@@ -103,7 +172,7 @@ export default function GraphView(props: {
     const outNodes: NodeDto[] = nodes.map((n) => ({
       id: n.id,
       label: (n.data as any)?.label ?? n.id,
-      metadata: { position: n.position }
+      metadata: { position: n.position, state: (n.data as any)?.state ?? "green" }
     }));
 
     const outEdges: EdgeDto[] = edges.map((e) => ({
