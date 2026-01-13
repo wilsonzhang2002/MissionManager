@@ -1,64 +1,73 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import GraphView from "../components/GraphView";
-import axios from "axios";
-
-type NodeDto = { id: string; label: string; metadata?: Record<string, any> };
-type EdgeDto = { source: string; target: string };
-
-type ProjectDto = {
-    id: string;
-    name: string;
-    tenantId: string;
-    nodes: NodeDto[];
-    edges: EdgeDto[];
-};
+import { getProject, getNodeStatuses, ProjectDto } from "../api/mockApi";
 
 export default function ProjectDetail() {
-    const { projectId } = useParams<{ projectId: string }>();
-    const [project, setProject] = useState<ProjectDto | null>(null);
-    const [loading, setLoading] = useState(true);
+  const { projectId } = useParams<{ projectId: string }>();
+  const [project, setProject] = useState<ProjectDto | null>(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        if (!projectId) {
-            setLoading(false);
-            return;
+  useEffect(() => {
+    let mounted = true;
+    if (!projectId) {
+      setLoading(false);
+      return;
+    }
+
+    (async () => {
+      try {
+        const p = await getProject(projectId);
+        if (!mounted) return;
+        setProject(p);
+      } catch {
+        // fallback: try demo project from mockApi
+        try {
+          const p = await getProject("demo-1");
+          if (!mounted) return;
+          setProject(p);
+        } catch {
+          // leave project as null
         }
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
 
-        axios
-            .get<ProjectDto>(`/api/projects/${encodeURIComponent(projectId)}`)
-            .then((r) => setProject(r.data))
-            .catch(() => {
-                // demo data fallback
-                setProject({
-                    id: "demo-1",
-                    name: "New Feature Adoption",
-                    tenantId: "tenant-a",
-                    nodes: [
-                        { id: "A", label: "System A" },
-                        { id: "B1", label: "System B1" },
-                        { id: "B2", label: "System B2" },
-                        { id: "C", label: "System C" }
-                    ],
-                    edges: [
-                        { source: "A", target: "B1" },
-                        { source: "A", target: "B2" },
-                        { source: "B1", target: "C" },
-                        { source: "B2", target: "C" }
-                    ]
-                });
-            })
-            .finally(() => setLoading(false));
-    }, [projectId]);
+    return () => {
+      mounted = false;
+    };
+  }, [projectId]);
 
-    if (loading) return <div>Loading project...</div>;
-    if (!project) return <div>No project found.</div>;
+  if (loading) return <div>Loading project...</div>;
+  if (!project) return <div>No project found.</div>;
 
-    return (
-        <div>
-            <h2>{project.name}</h2>
-            <p>Tenant: {project.tenantId}</p>
-            <GraphView nodes={project.nodes} edges={project.edges} />
-        </div>
-    );
+  return (
+    <div>
+      <h2>{project.name}</h2>
+      <p>Tenant: {project.tenantId}</p>
+
+      {/* Pass fetchStates so GraphView uses the mock API for node states */}
+      <GraphView
+        nodes={project.nodes}
+        edges={project.edges}
+        fetchStates={(ids) => getNodeStatuses(ids)}
+        onChange={async (nodes, edges) => {
+          // Example: save updated model back to mock API
+          await getProject(project.id); // ensure project exists in mock store
+          await (async () => {
+            // Merge into a project object and save
+            const updated = { ...project, nodes, edges };
+            // We call saveProject lazily via dynamic import to avoid circular deps in types
+            const mod = await import("../api/mockApi");
+            await mod.saveProject(updated);
+            setProject(updated);
+            // feedback
+            // eslint-disable-next-line no-console
+            console.log("Project saved to mock API:", updated);
+          })();
+        }}
+      />
+    </div>
+  );
 }
