@@ -1,7 +1,16 @@
 import React, { useCallback, useEffect } from "react";
-import ReactFlow,
-{ MiniMap, Controls, Background, Node, Edge, addEdge, useNodesState, useEdgesState, MarkerType, Connection }
-from "reactflow";
+import ReactFlow, {
+  MiniMap,
+  Controls,
+  Background,
+  Node,
+  Edge,
+  addEdge,
+  useNodesState,
+  useEdgesState,
+  MarkerType,
+  Connection
+} from "reactflow";
 import "reactflow/dist/style.css";
 import axios from "axios";
 
@@ -12,11 +21,15 @@ type NodeState = "green" | "yellow" | "orange" | "red";
 export default function GraphView(props: {
   nodes: NodeDto[];
   edges: EdgeDto[];
-  onChange?: (nodes: NodeDto[], edges: EdgeDto[]) => void;
+  /**
+   * Called whenever the model (nodes or edges) changes.
+   * Parent can use this to persist the current model (e.g. save button).
+   */
+  onModelChange?: (nodes: NodeDto[], edges: EdgeDto[]) => void;
   /**
    * Optional override to fetch node states. Should return a map of nodeId->state.
    * If not provided, component will POST to `/api/nodes/statuses` with body `{ ids: string[] }`
-   * and expect a response `{ [id: string]: "green" | "yellow" | "orange" | "red" }`.
+   * and expect a response `{ [id]: "green" | "yellow" | "orange" | "red" }`.
    */
   fetchStates?: (ids: string[]) => Promise<Record<string, NodeState | undefined>>;
 }) {
@@ -60,6 +73,18 @@ export default function GraphView(props: {
   // React Flow-managed state (keeps positions and edits)
   const [nodes, setNodes, onNodesChange] = useNodesState(initialRfNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialRfEdges);
+
+  // Whenever local nodes/edges change, notify parent with DTO shape
+  useEffect(() => {
+    if (!props.onModelChange) return;
+    const outNodes: NodeDto[] = nodes.map((n) => ({
+      id: n.id,
+      label: (n.data as any)?.label ?? n.id,
+      metadata: { position: n.position, state: (n.data as any)?.state ?? "green" }
+    }));
+    const outEdges: EdgeDto[] = edges.map((e) => ({ source: e.source, target: e.target }));
+    props.onModelChange(outNodes, outEdges);
+  }, [nodes, edges, props]);
 
   // Fetch node states from backend (or use provided fetchStates) and apply styles
   useEffect(() => {
@@ -153,7 +178,7 @@ export default function GraphView(props: {
     alert(`Node clicked: ${node.id}`);
   }, []);
 
-  // Add a new node (simple example). Caller can persist via onChange/save button.
+  // Add a new node (simple example). Caller can persist via parent Save button.
   const addNewNode = useCallback(() => {
     const id = `node-${Date.now()}`;
     setNodes((nds) => [
@@ -167,37 +192,12 @@ export default function GraphView(props: {
     ]);
   }, [setNodes]);
 
-  // Serialize current RF nodes/edges back to DTO shape and call optional onChange
-  const saveModel = useCallback(() => {
-    const outNodes: NodeDto[] = nodes.map((n) => ({
-      id: n.id,
-      label: (n.data as any)?.label ?? n.id,
-      metadata: { position: n.position, state: (n.data as any)?.state ?? "green" }
-    }));
-
-    const outEdges: EdgeDto[] = edges.map((e) => ({
-      source: e.source,
-      target: e.target
-    }));
-
-    if (props.onChange) {
-      props.onChange(outNodes, outEdges);
-    } else {
-      // fallback: log for development
-      // In real app: call API to persist
-      // eslint-disable-next-line no-console
-      console.log("Graph save (no onChange handler):", { nodes: outNodes, edges: outEdges });
-      alert("Graph model logged to console. Provide onChange prop to persist.");
-    }
-  }, [nodes, edges, props]);
-
   return (
     <div>
       <div style={{ marginBottom: 8 }}>
         <button onClick={addNewNode} style={{ marginRight: 8 }}>
           Add node
         </button>
-        <button onClick={saveModel}>Save graph</button>
       </div>
 
       <div style={{ height: 500, border: "1px solid #ddd", borderRadius: 4 }}>
