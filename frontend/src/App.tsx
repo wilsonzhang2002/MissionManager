@@ -1,7 +1,7 @@
 import React from "react";
 import { Routes, Route, Link, Navigate } from "react-router-dom";
-import ProjectList from "./pages/ProjectList";
-import ProjectDetail from "./pages/ProjectDetail";
+import MissionList from "./pages/MissionList";
+import MissionDetail from "./pages/MissionDetail";
 
 export default function App() {
   return (
@@ -9,14 +9,14 @@ export default function App() {
       <header style={{ marginBottom: 16 }}>
         <h1>MissionManager</h1>
         <nav>
-          <Link to="/projects">Projects</Link>
+          <Link to="/missions">Missions</Link>
         </nav>
       </header>
 
       <Routes>
-        <Route path="/projects" element={<ProjectList />} />
-        <Route path="/projects/:projectId" element={<ProjectDetail />} />
-        <Route path="*" element={<Navigate to="/projects" replace />} />
+        <Route path="/missions" element={<MissionList />} />
+        <Route path="/missions/:missionId" element={<MissionDetail />} />
+        <Route path="*" element={<Navigate to="/missions" replace />} />
       </Routes>
     </div>
   );

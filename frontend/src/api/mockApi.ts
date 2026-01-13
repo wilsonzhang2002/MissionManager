@@ -1,4 +1,4 @@
-// Lightweight in-memory mock API for projects and node statuses.
+// Lightweight in-memory mock API for missions and node statuses.
 // Use this during local development. Replace calls with real axios requests
 // when you have a backend available.
 
@@ -17,10 +17,11 @@ export type NodeDto = {
 
 export type EdgeDto = { source: string; target: string };
 
-export type ProjectDto = {
+export type MissionDto = {
   id: string;
   name: string;
-  tenantId: string;
+  tenantId?: string;
+  tenantName?: string;
   nodes: NodeDto[];
   edges: EdgeDto[];
 };
@@ -28,11 +29,12 @@ export type ProjectDto = {
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 // Simple demo dataset including position, size and initial state
-const mockProjects: Record<string, ProjectDto> = {
+const mockMissions: Record<string, MissionDto> = {
   "demo-1": {
     id: "demo-1",
     name: "New Feature Adoption",
     tenantId: "tenant-a",
+    tenantName: "Tenant A",
     nodes: [
       {
         id: "A",
@@ -66,16 +68,16 @@ const mockProjects: Record<string, ProjectDto> = {
 
 // Public API surface
 
-export async function getProject(projectId: string): Promise<ProjectDto> {
+export async function getMission(missionId: string): Promise<MissionDto> {
   // Simulate network latency
   await delay(250);
-  const p = mockProjects[projectId];
+  const p = mockMissions[missionId];
   if (!p) {
     // For demo, return demo-1 if not found
-    return mockProjects["demo-1"];
+    return mockMissions["demo-1"];
   }
   // Return a deep clone to avoid accidental mutation
-  return JSON.parse(JSON.stringify(p)) as ProjectDto;
+  return JSON.parse(JSON.stringify(p)) as MissionDto;
 }
 
 /**
@@ -86,8 +88,8 @@ export async function getNodeStatuses(ids: string[]): Promise<Record<string, Nod
   await delay(150);
   const result: Record<string, NodeState> = {};
   ids.forEach((id) => {
-    // Find state from any project that contains the node (simple approach)
-    for (const p of Object.values(mockProjects)) {
+    // Find state from any mission that contains the node (simple approach)
+    for (const p of Object.values(mockMissions)) {
       const node = p.nodes.find((n) => n.id === id);
       if (node && node.metadata && node.metadata.state) {
         result[id] = node.metadata.state as NodeState;
@@ -101,11 +103,11 @@ export async function getNodeStatuses(ids: string[]): Promise<Record<string, Nod
 }
 
 /**
- * Persist project to the in-memory store (demo only).
- * Returns the saved project.
+ * Persist mission to the in-memory store (demo only).
+ * Returns the saved mission.
  */
-export async function saveProject(project: ProjectDto): Promise<ProjectDto> {
+export async function saveMission(mission: MissionDto): Promise<MissionDto> {
   await delay(200);
-  mockProjects[project.id] = JSON.parse(JSON.stringify(project));
-  return mockProjects[project.id];
+  mockMissions[mission.id] = JSON.parse(JSON.stringify(mission));
+  return mockMissions[mission.id];
 }

@@ -7,6 +7,14 @@ Thank you for contributing. This document contains the repository standards and 
 - Create feature branches from `main` named `feature/<short-desc>` or `fix/<short-desc>`.
 - Use PRs targeting `main`. Include a short description, testing steps, and screenshots when relevant.
 
+## Naming conventions
+- The canonical domain term for this repository is "Mission" (not "Project").
+  - Use `Mission` in UI text, component and page names (e.g., `MissionList`, `MissionDetail`).
+  - Use `Mission` in types and DTOs (e.g., `MissionDto`).
+  - Use `/api/missions` for REST endpoints and prefer plural resource names.
+  - Filenames and directories should reflect the term `mission` (e.g., `pages/MissionList.tsx`).
+- Follow existing casing patterns: PascalCase for React components and types, camelCase for variables and function names.
+
 ## Code style and formatting
 - Project-level formatting is defined in `.editorconfig`. Follow it.
   - Frontend (TypeScript/React): 2 spaces indentation.
